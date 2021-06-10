@@ -29,7 +29,9 @@ import org.junit.jupiter.params.provider.MethodSource;
 import reactor.test.StepVerifier;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class EventHubClientBuilderTest extends IntegrationTestBase {
     private static final String NAMESPACE_NAME = "dummyNamespaceName";
