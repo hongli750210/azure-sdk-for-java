@@ -353,6 +353,126 @@ class ServiceBusClientBuilderTest extends IntegrationTestBase {
 
     }
 
+    @Test
+    public void testAsyncReceiverBuilderWithAzureSasCredentialAndAzureNameKeyCredential() {
+        ConnectionStringProperties properties = getConnectionStringProperties();
+        String fullyQualifiedNamespace = getFullyQualifiedDomainName();
+        String sharedAccessSignature = properties.getSharedAccessSignature();
+        String sharedAccessKeyName = properties.getSharedAccessKeyName();
+        String sharedAccessKey = properties.getSharedAccessKey();
+        String queueName = getQueueName(0);
+
+        assertThrows(NullPointerException.class, () -> new ServiceBusClientBuilder()
+            .credential(fullyQualifiedNamespace, new AzureNamedKeyCredential(sharedAccessKeyName, sharedAccessKey))
+            .credential(fullyQualifiedNamespace, new AzureSasCredential(sharedAccessSignature))
+            .receiver()
+            .queueName(queueName)
+            .buildAsyncClient());
+
+        assertThrows(IllegalArgumentException.class, () -> new ServiceBusClientBuilder()
+            .credential(fullyQualifiedNamespace, new AzureNamedKeyCredential(sharedAccessKeyName, sharedAccessKey))
+            .credential(fullyQualifiedNamespace, new AzureSasCredential(sharedAccessSignature))
+            .receiver()
+            .queueName(queueName)
+            .buildAsyncClient());
+    }
+
+    @Test
+    public void testReceiverBuilderWithAzureSasCredentialAndAzureNameKeyCredential() {
+        ConnectionStringProperties properties = getConnectionStringProperties();
+        String fullyQualifiedNamespace = getFullyQualifiedDomainName();
+        String sharedAccessSignature = properties.getSharedAccessSignature();
+        String sharedAccessKeyName = properties.getSharedAccessKeyName();
+        String sharedAccessKey = properties.getSharedAccessKey();
+        String queueName = getQueueName(0);
+
+        assertThrows(NullPointerException.class, () -> new ServiceBusClientBuilder()
+            .credential(fullyQualifiedNamespace, new AzureNamedKeyCredential(sharedAccessKeyName, sharedAccessKey))
+            .credential(fullyQualifiedNamespace, new AzureSasCredential(sharedAccessSignature))
+            .receiver()
+            .queueName(queueName)
+            .buildClient());
+
+        assertThrows(IllegalArgumentException.class, () -> new ServiceBusClientBuilder()
+            .credential(fullyQualifiedNamespace, new AzureNamedKeyCredential(sharedAccessKeyName, sharedAccessKey))
+            .credential(fullyQualifiedNamespace, new AzureSasCredential(sharedAccessSignature))
+            .receiver()
+            .queueName(queueName)
+            .buildClient());
+    }
+
+    @Test
+    public void testProcessorBuilderWithAzureSasCredentialAndAzureNameKeyCredential() {
+        ConnectionStringProperties properties = getConnectionStringProperties();
+        String fullyQualifiedNamespace = getFullyQualifiedDomainName();
+        String sharedAccessSignature = properties.getSharedAccessSignature();
+        String sharedAccessKeyName = properties.getSharedAccessKeyName();
+        String sharedAccessKey = properties.getSharedAccessKey();
+        String queueName = getQueueName(0);
+
+        assertThrows(NullPointerException.class, () -> new ServiceBusClientBuilder()
+            .credential(fullyQualifiedNamespace, new AzureNamedKeyCredential(sharedAccessKeyName, sharedAccessKey))
+            .credential(fullyQualifiedNamespace, new AzureSasCredential(sharedAccessSignature))
+            .processor()
+            .queueName(queueName)
+            .buildProcessorClient());
+
+        assertThrows(IllegalArgumentException.class, () -> new ServiceBusClientBuilder()
+            .credential(fullyQualifiedNamespace, new AzureNamedKeyCredential(sharedAccessKeyName, sharedAccessKey))
+            .credential(fullyQualifiedNamespace, new AzureSasCredential(sharedAccessSignature))
+            .processor()
+            .queueName(queueName)
+            .buildProcessorClient());
+    }
+
+    @Test
+    public void testSenderBuilderWithAzureSasCredentialAndAzureNameKeyCredential() {
+        ConnectionStringProperties properties = getConnectionStringProperties();
+        String fullyQualifiedNamespace = getFullyQualifiedDomainName();
+        String sharedAccessSignature = properties.getSharedAccessSignature();
+        String sharedAccessKeyName = properties.getSharedAccessKeyName();
+        String sharedAccessKey = properties.getSharedAccessKey();
+        String queueName = getQueueName(0);
+
+        assertThrows(NullPointerException.class, () -> new ServiceBusClientBuilder()
+            .credential(fullyQualifiedNamespace, new AzureNamedKeyCredential(sharedAccessKeyName, sharedAccessKey))
+            .credential(fullyQualifiedNamespace, new AzureSasCredential(sharedAccessSignature))
+            .sender()
+            .queueName(queueName)
+            .buildClient());
+
+        assertThrows(IllegalArgumentException.class, () -> new ServiceBusClientBuilder()
+            .credential(fullyQualifiedNamespace, new AzureNamedKeyCredential(sharedAccessKeyName, sharedAccessKey))
+            .credential(fullyQualifiedNamespace, new AzureSasCredential(sharedAccessSignature))
+            .sender()
+            .queueName(queueName)
+            .buildClient());
+    }
+
+    @Test
+    public void testAsyncSenderBuilderWithAzureSasCredentialAndAzureNameKeyCredential() {
+        ConnectionStringProperties properties = getConnectionStringProperties();
+        String fullyQualifiedNamespace = getFullyQualifiedDomainName();
+        String sharedAccessSignature = properties.getSharedAccessSignature();
+        String sharedAccessKeyName = properties.getSharedAccessKeyName();
+        String sharedAccessKey = properties.getSharedAccessKey();
+        String queueName = getQueueName(0);
+
+        assertThrows(NullPointerException.class, () -> new ServiceBusClientBuilder()
+            .credential(fullyQualifiedNamespace, new AzureNamedKeyCredential(sharedAccessKeyName, sharedAccessKey))
+            .credential(fullyQualifiedNamespace, new AzureSasCredential(sharedAccessSignature))
+            .sender()
+            .queueName(queueName)
+            .buildAsyncClient());
+
+        assertThrows(IllegalArgumentException.class, () -> new ServiceBusClientBuilder()
+            .credential(fullyQualifiedNamespace, new AzureNamedKeyCredential(sharedAccessKeyName, sharedAccessKey))
+            .credential(fullyQualifiedNamespace, new AzureSasCredential(sharedAccessSignature))
+            .sender()
+            .queueName(queueName)
+            .buildAsyncClient());
+    }
+
     private static Stream<Arguments> getProxyConfigurations() {
         return Stream.of(
             Arguments.of("http://localhost:8080", true),

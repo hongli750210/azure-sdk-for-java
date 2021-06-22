@@ -130,6 +130,8 @@ public final class ServiceBusClientBuilder {
     private ServiceBusConnectionProcessor sharedConnection;
     private String connectionStringEntityName;
     private TokenCredential credentials;
+    private AzureNamedKeyCredential azureNamedKeyCredential;
+    private AzureSasCredential azureSasCredential;
     private String fullyQualifiedNamespace;
     private ProxyOptions proxyOptions;
     private AmqpRetryOptions retryOptions;
@@ -216,72 +218,78 @@ public final class ServiceBusClientBuilder {
     }
 
     /**
-     * Sets the credential for the Service Bus resource.
+     * Sets the {@link TokenCredential} used to authorize requests sent to the service
      *
-     * @param fullyQualifiedNamespace for the Service Bus.
-     * @param credential {@link TokenCredential} to be used for authentication.
+     * @param fullyQualifiedNamespace The fully qualified name for the Service Bus namespace. This is likely to be
+     *     similar to <strong>{@literal "{your-namespace}.servicebus.windows.net}"</strong>.
+     * @param credential The token credential to use for authorization. Access controls may be specified by the
+     *     Service Bus namespace or the requested Service Bus, depending on Azure configuration.
      *
      * @return The updated {@link ServiceBusClientBuilder} object.
+     * @throws IllegalArgumentException if {@code fullyQualifiedNamespace} is an empty string or is null.
+     * @throws NullPointerException if {@code fullyQualifiedNamespace} , {@code credentials} is null.
      */
     public ServiceBusClientBuilder credential(String fullyQualifiedNamespace, TokenCredential credential) {
 
-        this.fullyQualifiedNamespace = Objects.requireNonNull(fullyQualifiedNamespace,
-            "'fullyQualifiedNamespace' cannot be null.");
-        this.credentials = Objects.requireNonNull(credential, "'credential' cannot be null.");
-
         if (CoreUtils.isNullOrEmpty(fullyQualifiedNamespace)) {
             throw logger.logExceptionAsError(
                 new IllegalArgumentException("'fullyQualifiedNamespace' cannot be an empty string."));
         }
 
+        this.fullyQualifiedNamespace = Objects.requireNonNull(fullyQualifiedNamespace, "'fullyQualifiedNamespace' cannot be null.");
+        this.credentials = Objects.requireNonNull(credential, "'credential' cannot be null.");
+
         return this;
     }
 
     /**
-     * Sets the credential for the Service Bus resource.
+     * Sets the {@link AzureNamedKeyCredential} used to authorize requests sent to the service.
      *
-     * @param fullyQualifiedNamespace for the Service Bus.
-     * @param credential {@link AzureNamedKeyCredential} to be used for authentication.
+     * @param fullyQualifiedNamespace The fully qualified name for the Service Bus namespace. This is likely to be
+     *     similar to <strong>{@literal "{your-namespace}.servicebus.windows.net}"</strong>.
+     * @param credential The shared access name and key credential to use for authorization.
+     *     Access controls may be specified by the Service Bus namespace or the requestedService Bus,
+     *     depending on Azure configuration.
      *
      * @return The updated {@link ServiceBusClientBuilder} object.
+     * @throws IllegalArgumentException if {@code fullyQualifiedNamespace} is an empty string or is null.
+     * @throws NullPointerException if {@code fullyQualifiedNamespace}, {@code credentials} is null.
      */
     public ServiceBusClientBuilder credential(String fullyQualifiedNamespace, AzureNamedKeyCredential credential) {
 
-        this.fullyQualifiedNamespace = Objects.requireNonNull(fullyQualifiedNamespace,
-            "'fullyQualifiedNamespace' cannot be null.");
-        Objects.requireNonNull(credential, "'credential' cannot be null.");
-
-        this.credentials = new ServiceBusSharedKeyCredential(credential.getAzureNamedKey().getName(),
-            credential.getAzureNamedKey().getKey(), ServiceBusConstants.TOKEN_VALIDITY);
-
         if (CoreUtils.isNullOrEmpty(fullyQualifiedNamespace)) {
             throw logger.logExceptionAsError(
                 new IllegalArgumentException("'fullyQualifiedNamespace' cannot be an empty string."));
         }
+
+        this.fullyQualifiedNamespace = Objects.requireNonNull(fullyQualifiedNamespace, "'fullyQualifiedNamespace' cannot be null.");
+        this.azureNamedKeyCredential = Objects.requireNonNull(credential, "'credential' cannot be null.");
 
         return this;
     }
 
     /**
-     * Sets the credential for the Service Bus resource.
+     * Sets the {@link AzureSasCredential} used to authorize requests sent to the service.
      *
-     * @param fullyQualifiedNamespace for the Service Bus.
-     * @param credential {@link AzureSasCredential} to be used for authentication.
+     * @param fullyQualifiedNamespace The fully qualified name for the Service Bus namespace. This is likely to be
+     *     similar to <strong>{@literal "{your-namespace}.servicebus.windows.net}"</strong>.
+     * @param credential The shared access signature credential to use for authorization.
+     *     Access controls may be specified by the Service Bus namespace or the requested Service Bus,
+     *     depending on Azure configuration.
      *
      * @return The updated {@link ServiceBusClientBuilder} object.
+     * @throws IllegalArgumentException if {@code fullyQualifiedNamespace} is an empty string or is null.
+     * @throws NullPointerException if {@code fullyQualifiedNamespace}, {@code credentials} is null.
      */
     public ServiceBusClientBuilder credential(String fullyQualifiedNamespace, AzureSasCredential credential) {
-
-        this.fullyQualifiedNamespace = Objects.requireNonNull(fullyQualifiedNamespace,
-            "'fullyQualifiedNamespace' cannot be null.");
-        Objects.requireNonNull(credential, "'credential' cannot be null.");
-
-        this.credentials = new ServiceBusSharedKeyCredential(credential.getSignature());
 
         if (CoreUtils.isNullOrEmpty(fullyQualifiedNamespace)) {
             throw logger.logExceptionAsError(
                 new IllegalArgumentException("'fullyQualifiedNamespace' cannot be an empty string."));
         }
+
+        this.fullyQualifiedNamespace = Objects.requireNonNull(fullyQualifiedNamespace, "'fullyQualifiedNamespace' cannot be null.");
+        this.azureSasCredential = Objects.requireNonNull(credential, "'credential' cannot be null.");
 
         return this;
     }
@@ -664,8 +672,12 @@ public final class ServiceBusClientBuilder {
          *     #connectionString(String) connectionString} contains an {@code EntityPath} that does not match one set in
          *     {@link #queueName(String) queueName} or {@link #topicName(String) topicName}.
          * @throws IllegalArgumentException if the entity type is not a queue or a topic.
+         * @throws IllegalArgumentException if {@code azureSasCredential} and {@code azureNamedKeyCredential} both are set.
          */
         public ServiceBusSenderAsyncClient buildAsyncClient() {
+
+            credentials = validateAndReturnCredential();
+
             final ServiceBusConnectionProcessor connectionProcessor = getOrCreateConnectionProcessor(messageSerializer);
             final MessagingEntityType entityType = validateEntityPaths(logger, connectionStringEntityName, topicName,
                 queueName);
@@ -700,6 +712,7 @@ public final class ServiceBusClientBuilder {
          *     #connectionString(String) connectionString} contains an {@code EntityPath} that does not match one set in
          *     {@link #queueName(String) queueName} or {@link #topicName(String) topicName}
          * @throws IllegalArgumentException if the entity type is not a queue or a topic.
+         * @throws IllegalArgumentException if {@code azureSasCredential} and {@code azureNamedKeyCredential} both are set.
          */
         public ServiceBusSenderClient buildClient() {
             return new ServiceBusSenderClient(buildAsyncClient(), MessageUtils.getTotalTimeout(retryOptions));
@@ -892,8 +905,10 @@ public final class ServiceBusClientBuilder {
          *     queueName()} or {@link #topicName(String) topicName()}, respectively.
          * @throws NullPointerException if the {@link #processMessage(Consumer)} or {@link #processError(Consumer)}
          *     callbacks are not set.
+         * @throws IllegalArgumentException if {@code azureSasCredential} and {@code azureNamedKeyCredential} both are set.
          */
         public ServiceBusProcessorClient buildProcessorClient() {
+            credentials = validateAndReturnCredential();
             return new ServiceBusProcessorClient(sessionReceiverClientBuilder,
                 Objects.requireNonNull(processMessage, "'processMessage' cannot be null"),
                 Objects.requireNonNull(processError, "'processError' cannot be null"), processorClientOptions);
@@ -1052,8 +1067,11 @@ public final class ServiceBusClientBuilder {
          *     #topicName(String) topicName} is set, but {@link #subscriptionName(String) subscriptionName} is not.
          * @throws IllegalArgumentException Queue or topic name are not set via {@link #queueName(String)
          *     queueName()} or {@link #topicName(String) topicName()}, respectively.
+         * @throws IllegalArgumentException if {@code azureSasCredential} and {@code azureNamedKeyCredential} both are set.
          */
         ServiceBusReceiverAsyncClient buildAsyncClientForProcessor() {
+            credentials = validateAndReturnCredential();
+
             final MessagingEntityType entityType = validateEntityPaths(logger, connectionStringEntityName, topicName,
                 queueName);
             final String entityPath = getEntityPath(logger, entityType, queueName, topicName, subscriptionName,
@@ -1094,6 +1112,7 @@ public final class ServiceBusClientBuilder {
          *     #topicName(String) topicName} is set, but {@link #subscriptionName(String) subscriptionName} is not.
          * @throws IllegalArgumentException Queue or topic name are not set via {@link #queueName(String)
          *     queueName()} or {@link #topicName(String) topicName()}, respectively.
+         * @throws IllegalArgumentException if {@code azureSasCredential} and {@code azureNamedKeyCredential} both are set.
          */
         public ServiceBusSessionReceiverAsyncClient buildAsyncClient() {
             return buildAsyncClient(true);
@@ -1111,6 +1130,7 @@ public final class ServiceBusClientBuilder {
          *     #topicName(String) topicName} is set, but {@link #subscriptionName(String) subscriptionName} is not.
          * @throws IllegalArgumentException Queue or topic name are not set via {@link #queueName(String)
          *     queueName()} or {@link #topicName(String) topicName()}, respectively.
+         * @throws IllegalArgumentException if {@code azureSasCredential} and {@code azureNamedKeyCredential} both are set.
          */
         public ServiceBusSessionReceiverClient buildClient() {
             return new ServiceBusSessionReceiverClient(buildAsyncClient(false),
@@ -1118,6 +1138,8 @@ public final class ServiceBusClientBuilder {
         }
 
         private ServiceBusSessionReceiverAsyncClient buildAsyncClient(boolean isAutoCompleteAllowed) {
+            credentials = validateAndReturnCredential();
+
             final MessagingEntityType entityType = validateEntityPaths(logger, connectionStringEntityName, topicName,
                 queueName);
             final String entityPath = getEntityPath(logger, entityType, queueName, topicName, subscriptionName,
@@ -1303,8 +1325,10 @@ public final class ServiceBusClientBuilder {
          *     queueName()} or {@link #topicName(String) topicName()}, respectively.
          * @throws NullPointerException if the {@link #processMessage(Consumer)} or {@link #processError(Consumer)}
          *     callbacks are not set.
+         * @throws IllegalArgumentException if {@code azureSasCredential} and {@code azureNamedKeyCredential} both are set.
          */
         public ServiceBusProcessorClient buildProcessorClient() {
+            credentials = validateAndReturnCredential();
             return new ServiceBusProcessorClient(serviceBusReceiverClientBuilder,
                 Objects.requireNonNull(processMessage, "'processMessage' cannot be null"),
                 Objects.requireNonNull(processError, "'processError' cannot be null"), processorClientOptions);
@@ -1458,6 +1482,7 @@ public final class ServiceBusClientBuilder {
          *     #topicName(String) topicName} is set, but {@link #subscriptionName(String) subscriptionName} is not.
          * @throws IllegalArgumentException Queue or topic name are not set via {@link #queueName(String)
          *     queueName()} or {@link #topicName(String) topicName()}, respectively.
+         * @throws IllegalArgumentException if {@code azureSasCredential} and {@code azureNamedKeyCredential} both are set.
          */
         public ServiceBusReceiverAsyncClient buildAsyncClient() {
             return buildAsyncClient(true);
@@ -1475,6 +1500,7 @@ public final class ServiceBusClientBuilder {
          *     #topicName(String) topicName} is set, but {@link #subscriptionName(String) subscriptionName} is not.
          * @throws IllegalArgumentException Queue or topic name are not set via {@link #queueName(String)
          *     queueName()} or {@link #topicName(String) topicName()}, respectively.
+         * @throws IllegalArgumentException if {@code azureSasCredential} and {@code azureNamedKeyCredential} both are set.
          */
         public ServiceBusReceiverClient buildClient() {
             return new ServiceBusReceiverClient(buildAsyncClient(false),
@@ -1482,6 +1508,8 @@ public final class ServiceBusClientBuilder {
         }
 
         ServiceBusReceiverAsyncClient buildAsyncClient(boolean isAutoCompleteAllowed) {
+            credentials = validateAndReturnCredential();
+
             final MessagingEntityType entityType = validateEntityPaths(logger, connectionStringEntityName, topicName,
                 queueName);
             final String entityPath = getEntityPath(logger, entityType, queueName, topicName, subscriptionName,
@@ -1522,5 +1550,18 @@ public final class ServiceBusClientBuilder {
             throw logger.logExceptionAsError(new IllegalArgumentException(
                 "'maxLockRenewalDuration' cannot be negative."));
         }
+    }
+
+    private TokenCredential validateAndReturnCredential() {
+        if (Objects.nonNull(azureSasCredential) && Objects.nonNull(azureNamedKeyCredential)) {
+            throw logger.logExceptionAsError(
+                new IllegalArgumentException("'SasCredential' and 'NamedKeyCredential' cannot be set at the same time. "));
+        } else if (Objects.nonNull(azureSasCredential)) {
+            return new ServiceBusSharedKeyCredential(azureSasCredential.getSignature());
+        } else if (Objects.nonNull(azureNamedKeyCredential)) {
+            return new ServiceBusSharedKeyCredential(azureNamedKeyCredential.getAzureNamedKey().getName(),
+                azureNamedKeyCredential.getAzureNamedKey().getKey(), ServiceBusConstants.TOKEN_VALIDITY);
+        }
+        return credentials;
     }
 }
